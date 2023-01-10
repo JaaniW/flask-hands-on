@@ -5,6 +5,9 @@ name = "pypi"
 
 [packages]
 flask = "*"
+flask-migrate = "*"
+python-dotenv = "*"
+alembic = "*"
 
 [dev-packages]
 
