@@ -8,6 +8,7 @@ flask = "*"
 flask-migrate = "*"
 python-dotenv = "*"
 alembic = "*"
+sqlmodel = "*"
 
 [dev-packages]
 
