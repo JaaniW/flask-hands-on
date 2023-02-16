@@ -2,9 +2,16 @@ from flask import current_app as app
 from config import Config
 from application.database.models.models import User
 from flask import jsonify, request
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import JWTManager
 from werkzeug.security import generate_password_hash, check_password_hash
 
 config = Config()
+
+# Setup the Flask-JWT-Extended extension
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
 
 
 @app.route("/hello", methods=["GET"])
@@ -19,31 +26,45 @@ def route_base():
     return {"message": "Hello"}
 
 
-@app.route("/user", methods=["POST"])
-def create_user():
-    try:
-        json_data = request.get_json()
-        user = User.create_user(**json_data)
-        return jsonify ({
-            "username": user.username,
-            "email": user.email
-            "password_hash": generate_password_hash('password')
-        })
-    except Exception as e:
-        return jsonify({
-            "message": str(e)
-        })
+users = []   
+
+@app.route("/user", methods=['POST'])  
+def create_user(): 
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({'message': 'Missing username or password'}), 400  
+
+    hashed_password = generate_password_hash(password, method='sjw123')   
+    user = {  
+        'username': username,   
+        'password': hashed_password
+    }
+    users.append(user)
+    return jsonify({'message': 'User created successfully'}), 201
+
+
 
 @app.route('/login', methods=['POST'])
 def login():
-    request_data = request.get_json()
-    username = request_data.get('username')
-    password = request_data.get('password')
+    data = request.get_json()
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if not username or not password:
+        return jsonify({'message': 'Missing username or password'}), 400
 
-    for user in user:
-        if username == user['username'] and user['email'] and check_password_hash(user['password_hash'], password):
-            return jsonify({'message': 'Successfully logged in'}), 
+    user = next((u for u in users if u['username'] == username), None)
+    if not user or not check_password_hash(user['password'], password):
+        return jsonify({'message': 'Invalid username or password'}), 401
 
-    return jsonify({'message': 'Invalid username or password'}), 
-    
+    access_token = create_access_token(identity=username)
+    return jsonify({'access_token': access_token}), 200
 
+
+
+@app.route('/protected', methods=['GET'])
+@jwt_required()
+def protected():
+    return jsonify({'message': 'This is a protected endpoint'}), 200
