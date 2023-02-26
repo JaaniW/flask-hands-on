@@ -9,6 +9,8 @@ flask-migrate = "*"
 python-dotenv = "*"
 alembic = "*"
 sqlmodel = "*"
+black = "*"
+isort = "*"
 
 [dev-packages]
 
