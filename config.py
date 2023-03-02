@@ -17,7 +17,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = "126#12312*^YHksajhgsagytu173uyibkajnsfoiugasvd"
     JWT_ACCESS_TOKEN_EXPIRES = 3600 * 24
-
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///mydatabase.db'
+    
+    
 
     # DEBUG=True

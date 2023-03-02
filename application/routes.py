@@ -5,6 +5,7 @@ from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
     jwt_required,
+    get_jwt_identity
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -93,57 +94,100 @@ def login():
     return (
         jsonify(    
             {
-                "access_token": create_access_token(identity=user.id),
-                "refresh_token": create_refresh_token(identity=user.id),
+                "access_token": create_access_token(identity=user.email),
+                "refresh_token": create_refresh_token(identity=user.email),
             }
         ),
         200,
     )
 
 
-@app.route("/protected", methods=["GET"])   
-@jwt_required()  
-def protected():   
-    return jsonify({"message": "This is a protected endpoint"}), 200
+# @app.route("/protected", methods=["GET"])   
+# @jwt_required()  
+# def protected():   
+#     return jsonify({"message": "This is a protected endpoint"}), 200
   
 
-
-def __repr__(self):
-        return f"Post(id={self.id}, user_id={self.user_id}, post_text='{self.post_text}', post_image='{self.post_image}', created_at='{self.created_at}', updated_at='{self.updated_at}', is_deleted={self.is_deleted}, is_pinned={self.is_pinned}, is_active={self.is_active})"
-
-
 @app.route('/post', methods=['POST'])
+@jwt_required()
 def create_post():
-    user_id = request.json['user_id']
-    post_text = request.json['post_text']
-    post_image = request.json.get('post_image')
-    post = Post(user_id=user_id, post_text=post_text, post_image=post_image)
-    db.session.add(post)
-    db.session.commit()
-    return jsonify({'message': 'Post created successfully!', 'post': post.__repr__()})
+    data = request.get_json()
+    post_text = data.get("post_text")
+    post_image = data.get("post_image")
+    user = get_jwt_identity()
+    print("Hewe")
+    print(type(user))
+    
+    user = User.get_user_serialize(user)
+    data = {
+        "user_id": user,
+        "post": post_text,
+        "image": post_image
+    }
+    try:
+        post = Post.create_post(**data)
+        return_data = {
+            "id": post.id, "post_text": post.post, "post_image": post.image
+        }
+        return jsonify({'message': return_data}), 201
+    except Exception as e:
+        return jsonify({"error":(e)}), 400
+    
+    
 
 
 @app.route('/post/<int:post_id>', methods=['PUT'])
 def update_post(post_id):
+    data = request.get_json()
     post = Post.query.get_or_404(post_id)
-    post.post_text = request.json['post_text']
-    post.post_image = request.json.get('post_image')
+    post_text = data.get['post_text']
+    post_image = data.get('post_image')
     post.updated_at = datetime.utcnow()
-    db.session.commit()
-    return jsonify({'message': 'Post updated successfully!', 'post': post.__repr__()})
+
+    
+    data = {
+        "post_text": post_text,
+        "post_image": post_image,
+    }
+    try:
+        post = Post.update_post(**data)
+        return_data = {
+            "id": post.id, "post_text": post.post, "post_image": post.image
+    
+        }
+        return jsonify({'message': return_data}), 201
+    except Exception as e:
+        return jsonify({"error":(e)}), 400
+   
+    
  
 @app.route('/post/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
     post.is_deleted = True
-    db.session.commit()
-    return jsonify({'message': 'Post deleted successfully!', 'post': post.__repr__()})
+    
+    data = {
+        "post.is_deleted": 
+    }
+    try:
+        post = Post.update_post(**data)
+        return_data = {
+            "post.is_deleted": 
+        }
+        return jsonify({'message': return_data}), 201
+    except Exception as e:
+        return jsonify({"error":(e)}), 400
+
+
 
 @app.route('/post', methods=['GET'])
 def get_user_posts():
     user_id = request.args.get('user_id')
-    posts = Post.query.filter_by(user_id=user_id, is_deleted=False).all()
-    return jsonify({'message': f'Posts retrieved successfully for user {user_id}!', 'posts': [post.__repr__() for post in posts]})
+    post = Post.query.filter_by(user_id=user_id, is_deleted=False).all()
+    return jsonify({'message': f'Posts retrieved successfully for user {user_id}!', 'post': post.__repr__()})
+
+
+
 
 @app.route('/post/<int:post_id>', methods=['GET'])
 def get_post(post_id):

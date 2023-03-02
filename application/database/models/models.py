@@ -1,8 +1,8 @@
 import datetime
 from dataclasses import dataclass
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
-from sqlalchemy.orm import Session
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, ForeignKey, Text
+from sqlalchemy.orm import Session, relationship
 from sqlmodel import Session
 from flask_sqlalchemy import SQLAlchemy
 
@@ -19,10 +19,11 @@ class User(Base):
     username = Column(String(50), index=True, unique=True)
     email = Column(String(150), unique=True, index=True)
     password = Column(String(250))
-    date_of_birth = Column(DateTime(), default=datetime.datetime.utcnow(), index=True)
+    date_of_birth = Column(DateTime(), default=datetime.datetime.utcnow())
     is_admin = Column(Boolean, default=True)
     is_staff = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=True)
+    posts = relationship('Post', backref='user')
 
     @staticmethod
     def get_user_serialize(email):
@@ -36,17 +37,32 @@ class User(Base):
         db.refresh(db_obj)
         return db_obj
 
-class Post(db.Model):
-    id = db.Column(db.Interger, primary_key=True)
-    user = db.Column(db.String(50), nullable=False)
-    post = db.Column(db.Text, nullable=False)
-    image = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_deleted = db.Column(db.Boolean, default=False)
-    is_pinned = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True) 
+class Post(Base):
+    __tablename__ = "post"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'))
+    post = Column(Text, nullable=False)
+    image = Column(String(100))
+    created_at = Column(DateTime(), default=datetime.datetime.utcnow())
+    updated_at = Column(DateTime(), default=datetime.datetime.utcnow(), onupdate=datetime.datetime.utcnow())
+    is_deleted = Column(Boolean, default=False)
+    is_pinned = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True) 
 
     
 
+    @staticmethod
+    def create_post(**data):
+        db_obj = Post(**data)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
     
+    @staticmethod
+    def update_post(**data):
+        db_obj = Post(**data)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
