@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from application.database.models.models import User, Post
+from application.database.models.models import User, Post, db
 from config import Config
 from datetime import datetime
 
@@ -125,7 +125,7 @@ def create_post():
         "image": post_image
     }
     try:
-        post = Post.create_post(**data)
+        post = Post.create_post(data)
         return_data = {
             "id": post.id, "post_text": post.post, "post_image": post.image
         }
@@ -139,23 +139,17 @@ def create_post():
 @app.route('/post/<int:post_id>', methods=['PUT'])
 def update_post(post_id):
     data = request.get_json()
-    post = Post.query.get_or_404(post_id)
-    post_text = data.get['post_text']
+    post_text =data.get('post_text') 
     post_image = data.get('post_image')
-    post.updated_at = datetime.utcnow()
 
-    
-    data = {
-        "post_text": post_text,
-        "post_image": post_image,
+    upadte_data = {
+        "post": post_text,
+        "image": post_image
     }
-    try:
-        post = Post.update_post(**data)
-        return_data = {
-            "id": post.id, "post_text": post.post, "post_image": post.image
     
-        }
-        return jsonify({'message': return_data}), 201
+    try:
+        data, status = Post.update_post(post_id, upadte_data)
+        return jsonify({'data': data}), status
     except Exception as e:
         return jsonify({"error":(e)}), 400
    
@@ -163,33 +157,27 @@ def update_post(post_id):
  
 @app.route('/post/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    post.is_deleted = True
     
-    data = {
-        "post.is_deleted": 
-    }
     try:
-        post = Post.update_post(**data)
-        return_data = {
-            "post.is_deleted": 
-        }
-        return jsonify({'message': return_data}), 201
+        response, status = Post.delete_post(post_id)
+        return jsonify({'message': response}), status
     except Exception as e:
         return jsonify({"error":(e)}), 400
 
 
 
-@app.route('/post', methods=['GET'])
-def get_user_posts():
-    user_id = request.args.get('user_id')
-    post = Post.query.filter_by(user_id=user_id, is_deleted=False).all()
-    return jsonify({'message': f'Posts retrieved successfully for user {user_id}!', 'post': post.__repr__()})
-
-
+@app.route('/post/<int:user_id>', methods=['GET'])
+def get_user_posts(user_id):
+    posts = Post.query.filter_by(user_id=user_id, is_deleted=False).all()
+    if not posts:
+        return jsonify({'message': 'No posts available'}), 404
+    return jsonify({'data': [{"post_id": post.id, "post_text": post.text, "post_image": post.image} for post in posts]}), 200
 
 
 @app.route('/post/<int:post_id>', methods=['GET'])
 def get_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    return jsonify({'message': 'Post retrieved successfully!', 'post': post.__repr__()})
+   post_id = request.args.get('post_id')
+   post = Post.query.filter_by(post_id=post_id, is_deleted=False).first()
+   if not post:
+        return jsonify({'message': 'Post not available'}), 404
+   return jsonify({'data': {"post_id": post.id, "post_text": post.text, "post_image": post.image}}), 200

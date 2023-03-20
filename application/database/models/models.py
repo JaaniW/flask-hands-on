@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, String, ForeignKey, T
 from sqlalchemy.orm import Session, relationship
 from sqlmodel import Session
 from flask_sqlalchemy import SQLAlchemy
+from flask import jsonify
 
 
 from application.database.db import Base, get_db
@@ -52,7 +53,7 @@ class Post(Base):
     
 
     @staticmethod
-    def create_post(**data):
+    def create_post(data):
         db_obj = Post(**data)
         db.add(db_obj)
         db.commit()
@@ -60,9 +61,34 @@ class Post(Base):
         return db_obj
     
     @staticmethod
-    def update_post(**data):
-        db_obj = Post(**data)
-        db.add(db_obj)
+    def update_post(post_id, data):
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return "No post available", 404
+        
+        post.post = data.get("post")
+        post.image = data.get("image")
         db.commit()
-        db.refresh(db_obj)
-        return db_obj
+        return {"post_id": post.id, "post_image": post.image, "post_text": post.text}, 202
+    
+
+    @staticmethod
+    def delete_post(post_id):
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return "No post available", 404
+        
+        db.delete(post)
+        return "", 204
+    
+    @staticmethod
+    def get_post(post_id, data):
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return "Post not available", 404
+        
+        post.post = data.get("post")
+        post.image = data.get("image")
+        db.commit()
+        return {"post_id": post.id, "post_image": post.image, "post_text": post.text}, 202
+    
